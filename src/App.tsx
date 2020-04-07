@@ -2,10 +2,7 @@ import React from "react";
 import { CosmosSDK, AccAddress, ValAddress } from "cosmos-client";
 import { staking, DelegateRequest } from "cosmos-client/x/staking";
 
-const sdk = new CosmosSDK(
-  "https://cosmos-mainnet-s-001.k80s.net/",
-  "cosmoshub-3"
-);
+const sdk = new CosmosSDK("http://localhost:8008", "cosmoshub-3");
 const DELEGATOR_ADDRESS = "cosmos1z52hq26g5n3la3m8sucrpessx33dgedw3cgvn0";
 
 function App() {
@@ -29,14 +26,19 @@ function App() {
       ),
       amount: {
         denom: "uatom",
-        amount: "0.0001"
+        amount: "1"
       }
     };
-    const unsinedTxs = await staking.postDelegation(
-      sdk,
-      AccAddress.fromBech32(DELEGATOR_ADDRESS),
-      delegationReq
-    );
+
+    const unsinedTxs = await fetch(
+      sdk.url + `/staking/delegators/${DELEGATOR_ADDRESS}/delegations`,
+      {
+        method: "POST",
+        body: JSON.stringify(delegationReq),
+        headers: { "Content-Type": "application/json" },
+        mode: "cors"
+      }
+    ).then(resp => resp.json());
 
     console.log(unsinedTxs);
   };
