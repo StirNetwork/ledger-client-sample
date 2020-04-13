@@ -1,6 +1,8 @@
 import React from "react";
 import { CosmosSDK, AccAddress, ValAddress } from "cosmos-client";
 import { staking, DelegateRequest } from "cosmos-client/x/staking";
+import { StdTx } from "cosmos-client/x/auth";
+import { sign } from "./sign";
 // import Ledger from "@lunie/cosmos-ledger";
 
 const sdk = new CosmosSDK("http://localhost:8008", "cosmoshub-3");
@@ -31,26 +33,43 @@ function App() {
       }
     };
 
-    // const unsinedTxs = await fetch(
-    //   sdk.url + `/staking/delegators/${DELEGATOR_ADDRESS}/delegations`,
-    //   {
-    //     method: "POST",
-    //     body: JSON.stringify(delegationReq),
-    //     headers: { "Content-Type": "application/json" },
-    //     mode: "cors"
-    //   }
-    // ).then(resp => resp.json());
+    const unsinedTxs = await fetch(
+      sdk.url + `/staking/delegators/${DELEGATOR_ADDRESS}/delegations`,
+      {
+        method: "POST",
+        body: JSON.stringify(delegationReq),
+        headers: { "Content-Type": "application/json" },
+        mode: "cors"
+      }
+    ).then(resp => resp.json());
 
-    const unsinedTxs = await staking.postDelegation(
-      sdk,
-      AccAddress.fromBech32(DELEGATOR_ADDRESS),
-      delegationReq
-    );
+    // const unsinedTxs = await staking.postDelegation(
+    //   sdk,
+    //   AccAddress.fromBech32(DELEGATOR_ADDRESS),
+    //   delegationReq
+    // );
 
     // const ledger = await new Ledger().connect();
     // const signature = await ledger.sign(unsinedTxs);
 
-    console.log(unsinedTxs);
+    const { signatures, publicKey } = await sign(unsinedTxs.value);
+    const signedTxs = {
+      tx: {
+        ...unsinedTxs.value,
+        signatures,
+        pub_key: { type: `tendermint/PubKeySecp256k1`, value: publicKey }
+      },
+      mode: "block"
+    };
+
+    const result = await fetch(sdk.url + `/txs`, {
+      method: "POST",
+      body: JSON.stringify(signedTxs),
+      headers: { "Content-Type": "application/json" },
+      mode: "cors"
+    }).then(resp => resp.json());
+
+    console.log(result);
   };
   return (
     <div>
